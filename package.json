@@ -1,0 +1,22 @@
+{
+  "name": "instagram-mock-app",
+  "version": "1.0.0",
+  "description": "A modern Instagram mock application with stories, posts, DMs, and user profiles",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "instagram",
+    "mock",
+    "social-media",
+    "web-app"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^7.2.4"
+  }
+}
