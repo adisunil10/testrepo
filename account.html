@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Instagram</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fab fa-instagram"></i>
+                <span class="logo-text">Instagram</span>
+            </div>
+            <div class="nav-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search">
+            </div>
+            <div class="nav-icons">
+                <a href="index.html" class="nav-icon"><i class="fas fa-home"></i></a>
+                <a href="dm.html" class="nav-icon"><i class="far fa-paper-plane"></i></a>
+                <a href="explore.html" class="nav-icon"><i class="far fa-compass"></i></a>
+                <a href="account.html" class="nav-icon active"><i class="far fa-user"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content profile-main">
+        <div class="profile-container">
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="profile-avatar-section">
+                    <div class="profile-avatar">
+                        <img src="https://i.pravatar.cc/300?img=12" alt="Profile">
+                    </div>
+                </div>
+                <div class="profile-info">
+                    <div class="profile-username-section">
+                        <h1 class="profile-username">your_username</h1>
+                        <button class="edit-profile-btn">Edit Profile</button>
+                        <button class="settings-btn"><i class="fas fa-cog"></i></button>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">127</span>
+                            <span class="stat-label">posts</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">1,234</span>
+                            <span class="stat-label">followers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">567</span>
+                            <span class="stat-label">following</span>
+                        </div>
+                    </div>
+                    <div class="profile-bio">
+                        <h2>Your Name</h2>
+                        <p>📍 Vancouver, BC</p>
+                        <p>✨ Living life one post at a time</p>
+                        <a href="#" class="bio-link">www.yourwebsite.com</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Tabs -->
+            <div class="profile-tabs">
+                <button class="tab-btn active" data-tab="posts">
+                    <i class="fas fa-th"></i>
+                    <span>POSTS</span>
+                </button>
+                <button class="tab-btn" data-tab="saved">
+                    <i class="far fa-bookmark"></i>
+                    <span>SAVED</span>
+                </button>
+                <button class="tab-btn" data-tab="tagged">
+                    <i class="far fa-user"></i>
+                    <span>TAGGED</span>
+                </button>
+            </div>
+
+            <!-- Posts Grid -->
+            <div class="profile-posts-grid" id="profilePostsGrid">
+                <!-- Posts will be dynamically generated -->
+            </div>
+        </div>
+    </main>
+
+    <script src="account.js"></script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Messages - Instagram</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fab fa-instagram"></i>
+                <span class="logo-text">Instagram</span>
+            </div>
+            <div class="nav-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search">
+            </div>
+            <div class="nav-icons">
+                <a href="index.html" class="nav-icon"><i class="fas fa-home"></i></a>
+                <a href="dm.html" class="nav-icon active"><i class="far fa-paper-plane"></i></a>
+                <a href="explore.html" class="nav-icon"><i class="far fa-compass"></i></a>
+                <a href="account.html" class="nav-icon"><i class="far fa-user"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content dm-main">
+        <div class="dm-container">
+            <!-- Conversations List -->
+            <div class="conversations-panel">
+                <div class="dm-header">
+                    <h2>Messages</h2>
+                    <button class="new-message-btn"><i class="far fa-edit"></i></button>
+                </div>
+                <div class="conversations-list" id="conversationsList">
+                    <!-- Conversations will be dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <div class="chat-user-info">
+                        <img src="https://i.pravatar.cc/150?img=1" alt="User" id="chatUserAvatar">
+                        <div>
+                            <span class="chat-username" id="chatUsername">sarah_m</span>
+                            <span class="chat-status" id="chatStatus">Active now</span>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button><i class="fas fa-phone"></i></button>
+                        <button><i class="fas fa-video"></i></button>
+                        <button><i class="fas fa-info-circle"></i></button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Messages will be dynamically generated -->
+                </div>
+
+                <div class="message-input-container">
+                    <div class="message-input-wrapper">
+                        <button class="emoji-btn"><i class="far fa-smile"></i></button>
+                        <input type="text" placeholder="Message..." id="messageInput" class="message-input">
+                        <button class="attachment-btn"><i class="far fa-image"></i></button>
+                        <button class="send-btn" id="sendBtn"><i class="far fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="dm.js"></script>
+</body>
+</html>
+
+
+
