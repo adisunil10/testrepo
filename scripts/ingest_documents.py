@@ -24,9 +24,14 @@ def main():
         logger.info(f"Created {result['chunks_created']} chunks")
         logger.info(f"Stored {result['vectors_stored']} vectors")
         
-        # Initialize RAG agent
-        pipeline.initialize_rag_agent()
-        logger.info("RAG agent initialized and ready!")
+        # Try to initialize RAG agent (optional - can fail if LLM download fails)
+        try:
+            pipeline.initialize_rag_agent()
+            logger.info("RAG agent initialized and ready!")
+        except Exception as e:
+            logger.warning(f"RAG agent initialization failed: {str(e)}")
+            logger.info("Document ingestion completed successfully. RAG agent will be initialized on first query.")
+            logger.info("Note: You can use OpenAI API instead by setting USE_OPENAI=true in .env")
     else:
         logger.warning(f"Ingestion completed with status: {result['status']}")
         logger.warning(result.get('message', ''))

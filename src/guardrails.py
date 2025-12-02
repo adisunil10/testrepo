@@ -10,15 +10,15 @@ logger = logging.getLogger(__name__)
 class QueryValidation(BaseModel):
     """Pydantic model for query validation"""
     query: str
-    max_length: int = settings.MAX_QUERY_LENGTH
     
     @field_validator('query')
     @classmethod
     def validate_query(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("Query cannot be empty")
-        if len(v) > cls.max_length:
-            raise ValueError(f"Query exceeds maximum length of {cls.max_length} characters")
+        max_length = settings.MAX_QUERY_LENGTH
+        if len(v) > max_length:
+            raise ValueError(f"Query exceeds maximum length of {max_length} characters")
         return v.strip()
     
     def check_unsafe_patterns(self) -> Dict[str, bool]:

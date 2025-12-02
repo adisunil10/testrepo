@@ -60,20 +60,48 @@ class FAISSVectorStore:
     
     def search(self, query_embedding: np.ndarray, k: int = 5) -> List[Tuple[Dict, float]]:
         """Search for similar documents"""
+        if self.index.ntotal == 0:
+            logger.warning("Vector index is empty. Cannot perform search.")
+            return []
+        
         if not isinstance(query_embedding, np.ndarray):
             query_embedding = np.array([query_embedding]).astype('float32')
+        
+        # Ensure query_embedding is 2D
+        if query_embedding.ndim == 1:
+            query_embedding = query_embedding.reshape(1, -1)
         
         if query_embedding.shape[1] != self.dimension:
             raise ValueError(f"Query embedding dimension {query_embedding.shape[1]} doesn't match index dimension {self.dimension}")
         
-        distances, indices = self.index.search(query_embedding, min(k, self.index.ntotal))
+        search_k = min(k, self.index.ntotal)
+        if search_k == 0:
+            return []
         
-        results = []
-        for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
-            if idx < len(self.metadata):
-                results.append((self.metadata[idx], float(distance)))
-        
-        return results
+        try:
+            distances, indices = self.index.search(query_embedding, search_k)
+            
+            # Check if results are valid
+            if distances.size == 0 or indices.size == 0:
+                logger.warning("FAISS search returned empty results")
+                return []
+            
+            # Ensure we have the right shape
+            if distances.ndim > 1:
+                distances = distances[0]
+            if indices.ndim > 1:
+                indices = indices[0]
+            
+            results = []
+            for distance, idx in zip(distances, indices):
+                # Check if index is valid and metadata exists
+                if 0 <= idx < len(self.metadata) and idx != -1:
+                    results.append((self.metadata[idx], float(distance)))
+            
+            return results
+        except Exception as e:
+            logger.error(f"Error during vector search: {str(e)}")
+            return []
     
     def save(self):
         """Save index and metadata to disk"""

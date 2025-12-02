@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # RAG Configuration
     TOP_K_RETRIEVAL: int = 5
     TEMPERATURE: float = 0.7
-    MAX_TOKENS: int = 512
+    MAX_TOKENS: int = 2000  # Increased for more complete answers
     
     # Guardrails
     ENABLE_GUARDRAILS: bool = True

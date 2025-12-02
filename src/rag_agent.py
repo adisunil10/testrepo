@@ -2,12 +2,7 @@
 import logging
 import numpy as np
 from typing import List, Dict, Optional
-from langchain.llms import HuggingFacePipeline
-from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from langchain.schema import Document
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS as LangChainFAISS
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
 import torch
 from src.config import settings
@@ -28,17 +23,11 @@ class RAGAgent:
         
         # Initialize LLM
         if settings.USE_OPENAI:
-            from langchain.llms import OpenAI
-            self.llm = OpenAI(
-                model_name=settings.OPENAI_MODEL,
-                temperature=settings.TEMPERATURE,
-                max_tokens=settings.MAX_TOKENS
-            )
+            self.llm = None  # Will use OpenAI API directly
+            if not settings.OPENAI_API_KEY:
+                raise ValueError("OPENAI_API_KEY must be set when USE_OPENAI=true")
         else:
             self.llm = self._load_local_llm(use_quantization)
-        
-        # Initialize LangChain FAISS vector store wrapper
-        self.langchain_vectorstore = self._create_langchain_vectorstore()
         
         # Create RAG chain
         self.qa_chain = self._create_qa_chain()
@@ -72,7 +61,7 @@ class RAGAgent:
             )
             
             # Create pipeline
-            pipe = pipeline(
+            hf_pipeline = pipeline(
                 "text-generation",
                 model=model,
                 tokenizer=tokenizer,
@@ -82,35 +71,12 @@ class RAGAgent:
                 device=0 if device == "cuda" else -1
             )
             
-            llm = HuggingFacePipeline(pipeline=pipe)
             logger.info("Local LLM loaded successfully")
-            return llm
+            return hf_pipeline
             
         except Exception as e:
             logger.error(f"Error loading local LLM: {str(e)}")
-            logger.warning("Falling back to a simpler model or API-based LLM")
-            # Fallback to a smaller model
-            try:
-                from langchain.llms import HuggingFaceHub
-                llm = HuggingFaceHub(
-                    repo_id="mistralai/Mistral-7B-Instruct-v0.1",
-                    model_kwargs={"temperature": settings.TEMPERATURE, "max_length": settings.MAX_TOKENS}
-                )
-                return llm
-            except:
-                raise Exception("Could not load LLM. Please check model configuration or use OpenAI API.")
-    
-    def _create_langchain_vectorstore(self):
-        """Create LangChain FAISS vector store from our custom vector store"""
-        # This is a simplified wrapper - in production, you'd convert the FAISS index
-        # For now, we'll use LangChain's FAISS with embeddings
-        embeddings = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL
-        )
-        
-        # Create a temporary FAISS index using LangChain
-        # In production, you'd load from the existing index
-        return None  # Will be set up during document ingestion
+            raise Exception("Could not load local LLM. Please verify model configuration or enable USE_OPENAI.")
     
     def _create_qa_chain(self):
         """Create the QA chain with custom prompt"""
@@ -135,6 +101,44 @@ Answer:"""
             "prompt": PROMPT,
             "top_k": settings.TOP_K_RETRIEVAL
         }
+    
+    def _generate_openai_response(self, prompt: str) -> str:
+        """Generate a response using OpenAI API directly"""
+        try:
+            import openai
+            from openai import OpenAI
+            
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            response = client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a helpful customer support assistant. Always provide complete, well-structured answers that fully address the user's question. Start your responses directly with the answer (don't repeat the question). Use clear paragraphs or bullet points when appropriate. Ensure your answers are never cut off mid-sentence."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=settings.TEMPERATURE,
+                max_tokens=settings.MAX_TOKENS
+            )
+            return response.choices[0].message.content.strip()
+        except ImportError:
+            raise ImportError("OpenAI package not installed. Install it with: pip install openai")
+        except Exception as e:
+            logger.error(f"OpenAI API error: {str(e)}")
+            raise
+    
+    def _generate_response(self, llm, prompt: str) -> str:
+        """Generate a response from HuggingFace pipeline"""
+        result = llm(
+            prompt,
+            max_new_tokens=settings.MAX_TOKENS,
+            temperature=settings.TEMPERATURE,
+            do_sample=True
+        )
+        if isinstance(result, list) and len(result) > 0:
+            return result[0].get("generated_text", "").strip()
+        if isinstance(result, str):
+            return result.strip()
+        return str(result)
     
     def query(self, question: str) -> Dict:
         """Process a query and return answer with sources"""
@@ -164,32 +168,83 @@ Answer:"""
                 }
             
             # Extract context from retrieved documents
-            context = "\n\n".join([doc["content"] for doc, _ in results])
+            context_parts = []
+            for item in results:
+                try:
+                    if isinstance(item, tuple) and len(item) >= 1:
+                        doc = item[0]
+                        if isinstance(doc, dict) and "content" in doc:
+                            context_parts.append(doc["content"])
+                except (IndexError, TypeError, AttributeError) as e:
+                    logger.warning(f"Error extracting context from result: {str(e)}")
+                    continue
             
-            # Generate answer using LLM
-            if settings.USE_OPENAI:
-                from langchain.llms import OpenAI
-                llm = OpenAI(temperature=settings.TEMPERATURE)
-            else:
-                llm = self.llm
+            if not context_parts:
+                return {
+                    "answer": "I couldn't find relevant information to answer your question from the retrieved documents.",
+                    "sources": [],
+                    "error": None
+                }
             
-            # Simple answer generation (in production, use full LangChain chain)
-            prompt = f"""Context: {context}\n\nQuestion: {question}\n\nAnswer:"""
+            context = "\n\n".join(context_parts)
+            
+            # Generate answer using LLM with improved prompt
+            prompt = f"""Based on the following context from company documents, please answer the question completely and clearly.
+
+Context:
+{context}
+
+Question: {question}
+
+Instructions:
+- Provide a complete answer that fully addresses the question
+- Start your answer directly without repeating the question
+- Use clear, structured sentences
+- If the context doesn't contain sufficient information, clearly state that
+- Ensure your answer is complete and not cut off mid-sentence
+
+Answer:"""
             
             try:
-                answer = llm(prompt)
+                if settings.USE_OPENAI:
+                    answer = self._generate_openai_response(prompt)
+                else:
+                    answer = self._generate_response(self.llm, prompt)
             except Exception as e:
                 logger.error(f"LLM generation error: {str(e)}")
                 # Fallback: return top retrieved document
-                answer = results[0][0]["content"][:500] + "..."
+                if results and len(results) > 0 and isinstance(results[0], tuple) and len(results[0]) > 0:
+                    doc = results[0][0]
+                    if isinstance(doc, dict) and "content" in doc:
+                        answer = doc["content"][:500] + "..."
+                    else:
+                        answer = "I found relevant documents but couldn't generate an answer. Please try rephrasing your question."
+                else:
+                    answer = "I couldn't generate an answer. Please try again."
             
             # Extract sources
-            sources = [doc["source"] for doc, _ in results]
+            sources = []
+            for item in results:
+                if isinstance(item, tuple) and len(item) >= 1:
+                    doc = item[0]
+                    if isinstance(doc, dict) and "source" in doc:
+                        sources.append(doc["source"])
+            
+            # Calculate confidence from distance (lower distance = higher confidence)
+            confidence = 0.0
+            if results and len(results) > 0:
+                try:
+                    # results[0] is (metadata_dict, distance)
+                    distance = results[0][1]
+                    confidence = max(0.0, min(1.0, 1.0 - (distance / 10.0)))
+                except (IndexError, TypeError) as e:
+                    logger.warning(f"Could not calculate confidence: {str(e)}")
+                    confidence = 0.8  # Default confidence
             
             return {
                 "answer": answer.strip(),
                 "sources": sources,
-                "confidence": 1.0 - (results[0][1] / 10.0) if results else 0.0,
+                "confidence": confidence,
                 "error": None
             }
             
